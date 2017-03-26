@@ -22,7 +22,7 @@ class ExecuteTests: XCTestCase {
         let driver = SQLiteDriver()
         let connection = try driver.connect(url: "sqlite://memory", params: [:])
         
-        try connection.execute(query: "CREATE TABLE person(id INTEGER PRIMARY KEY AUTOINCREMENT, firstname TEXT, lastname TEXT);", parameters: [], named: [:])
+        try connection.execute(query: "CREATE TABLE person(id INTEGER PRIMARY KEY AUTOINCREMENT, firstname TEXT, lastname TEXT)", parameters: [], named: [:])
         
         try connection.execute(query: "INSERT INTO person(firstname, lastname) VALUES(?, ?);", parameters: ["John", "Lennon"], named: [:])
         try connection.execute(query: "INSERT INTO person(firstname, lastname) VALUES(@first, :last);", parameters: [], named: [":last":"McCartney", "@first": "Paul"])
@@ -57,10 +57,20 @@ class ExecuteTests: XCTestCase {
         try XCTAssertEqual(rsd2!.count(), 0)
     }
     
-    /*func testExecute() throws {
-        try connection.execute(query: upsert, parameters: [], named: [:])
-        let result = try connection.execute(query: "SELECT firstname FROM person WHERE id IS 1", parameters: [], named: [:])!
+    func testExecute() throws {
+        let expectation = self.expectation(description: "Unsupported")
         
-        XCTAssertEqual(try result.next()![0]! as! String, "Ringo")
-	}*/
+        do {
+            try connection.execute(query: upsert, parameters: [], named: [:])
+        } catch let e as SQLiteError {
+            switch e {
+            case .unsupported(what: _):
+                expectation.fulfill()
+            default:
+                throw e
+            }
+        }
+        
+        self.waitForExpectations(timeout: 0, handler: nil)
+	}
 }

@@ -29,6 +29,7 @@ public enum SQLiteError : Error {
     case enhanced(code:Int32, message:String)
     case custom(message:String)
     case resource(name:String, message:String)
+    case unsupported(what: String)
 }
 
 extension SQLiteError : RDBCError {
@@ -69,6 +70,8 @@ extension SQLiteError : CustomStringConvertible {
         switch self {
         case .custom(message: let message):
             return message
+        case .unsupported(what: let what):
+            return "Unsupported feature: \(what)"
         case .enhanced(code: let code, message: let message):
             return "Code: \(code); \(message)"
         case .resource(name: let name, message: let message):
@@ -76,6 +79,12 @@ extension SQLiteError : CustomStringConvertible {
         default:
             return cdescription.flatMap(String.init(validatingUTF8:)) ?? "unknown SQLiteError: error happened while trying to retreive the error message"
         }
+    }
+}
+
+extension SQLiteError : CustomDebugStringConvertible {
+    public var debugDescription: String {
+        return description
     }
 }
 
@@ -233,6 +242,10 @@ internal class SQLiteStatement : Resource<OpaquePointer>, SQLiteObject {
             }
             let statement = _statement as! SQLiteStatement
             try statement.call(sqlite3_finalize)
+        }
+        
+        if !(tail.flatMap(String.init(validatingUTF8:)).map({$0.isEmpty}) ?? false) {
+            throw SQLiteError.unsupported(what: "Multiple statements")
         }
     }
     
