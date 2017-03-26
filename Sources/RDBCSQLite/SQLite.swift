@@ -231,11 +231,14 @@ internal class SQLiteStatement : Resource<OpaquePointer>, SQLiteObject {
     init(connection:SQLiteConnection, query:String) throws {
         var connection:SQLiteConnection! = connection
         var _statement: OpaquePointer?
-        //just leaving it here for later processing; doc here https://www.sqlite.org/c3ref/prepare.html
-        var tail: UnsafePointer<Int8>? = nil
         
-        // Prepare SQLite statement
-        try connection.call { sqlite3_prepare_v2($0, query, -1, &_statement, &tail) }
+        let tail = try query.withCString { query -> String? in
+            //just leaving it here for later processing; doc here https://www.sqlite.org/c3ref/prepare.html
+            var tail: UnsafePointer<Int8>? = nil
+            // Prepare SQLite statement
+            try connection.call { sqlite3_prepare_v2($0, query, -1, &_statement, &tail) }
+            return tail.flatMap(String.init(validatingUTF8:))
+        }
         
         guard let statement = _statement else {
             throw SQLiteError.custom(message: "Statement didn't return... weird stuff...")
@@ -249,7 +252,7 @@ internal class SQLiteStatement : Resource<OpaquePointer>, SQLiteObject {
             try statement.call(sqlite3_finalize)
         }
         
-        if !(tail.flatMap(String.init(validatingUTF8:)).map({$0.isEmpty}) ?? false) {
+        if !(tail.map({$0.isEmpty}) ?? false) {
             throw SQLiteError.unsupported(what: "Multiple statements")
         }
     }

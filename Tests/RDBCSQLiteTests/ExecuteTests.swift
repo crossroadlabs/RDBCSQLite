@@ -40,8 +40,8 @@ class ExecuteTests: XCTestCase {
         
         try connection.execute(query: "CREATE TABLE person(id INTEGER PRIMARY KEY AUTOINCREMENT, firstname TEXT, lastname TEXT)", parameters: [], named: [:])
         
-        try connection.execute(query: "INSERT INTO person(firstname, lastname) VALUES(?, ?)", parameters: ["John", "Lennon"], named: [:])
-        try connection.execute(query: "INSERT INTO person(firstname, lastname) VALUES(@first, :last)", parameters: [], named: [":last":"McCartney", "@first": "Paul"])
+        try connection.execute(query: "INSERT INTO person(firstname, lastname) VALUES(?, ?); ", parameters: ["John", "Lennon"], named: [:])
+        try connection.execute(query: "INSERT INTO person(firstname, lastname) VALUES(@first, :last); ", parameters: [], named: [":last":"McCartney", "@first": "Paul"])
         
         return connection
     }()
