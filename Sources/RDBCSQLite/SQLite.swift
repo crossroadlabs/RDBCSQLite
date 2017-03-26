@@ -192,7 +192,7 @@ public class SQLiteConnection : Resource<OpaquePointer>, SyncConnection, SQLiteO
         try call {sqlite3_busy_timeout($0, millis)}
     }
     
-    private var changes: Int {
+    internal var changes: Int {
         return Int(with(sqlite3_changes))
     }
     
@@ -203,21 +203,18 @@ public class SQLiteConnection : Resource<OpaquePointer>, SyncConnection, SQLiteO
         try statement.bind(parameters: parameters)
         try statement.bind(named: named)
         
-        let result:SyncResultSet? = try statement.step() ? SQLiteResultSet(statement: statement) : nil
-        
-        return result.or {
-            if !(q.hasPrefix("INSERT") || q.hasPrefix("UPDATE") || q.hasPrefix("DELETE")) {
-                return nil
-            }
-            
-            let count = changes
-            return StaticResultSet.count(count)
-        }
+        return try statement.results()
     }
 }
 
 internal class SQLiteStatement : Resource<OpaquePointer>, SQLiteObject {
+    private let _connection: SQLiteConnection
+    private let _query: String
+    
     init(connection:SQLiteConnection, query:String) throws {
+        _connection = connection
+        _query = query
+        
         var connection:SQLiteConnection! = connection
         var _statement: OpaquePointer?
         //just leaving it here for later processing; doc here https://www.sqlite.org/c3ref/prepare.html
@@ -341,6 +338,19 @@ internal class SQLiteStatement : Resource<OpaquePointer>, SQLiteObject {
                 }
                 return name
             }
+        }
+    }
+    
+    func results() throws -> SyncResultSet? {
+        let result:SyncResultSet? = try step() ? SQLiteResultSet(statement: self) : nil
+        
+        return result.or {
+            if !(_query.hasPrefix("INSERT") || _query.hasPrefix("UPDATE") || _query.hasPrefix("DELETE")) {
+                return nil
+            }
+            
+            let count = _connection.changes
+            return StaticResultSet.count(count)
         }
     }
 }
