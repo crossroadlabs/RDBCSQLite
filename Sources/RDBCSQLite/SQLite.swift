@@ -108,6 +108,8 @@ public extension SQLiteObject {
 
 public class SQLiteDriver : SyncDriver {
     public let proto: String = "sqlite"
+    public let poolSizeLimit: UInt = 1
+    public let poolSizeRecommended: UInt = 1
     
     public init() {
     }
